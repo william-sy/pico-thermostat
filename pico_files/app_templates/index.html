@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Pico Thermostat</title>
+    </head>
+    <body>
+        <p>Thermostat state: <span id="thermostat"></span></p>
+        <br/>
+        <button id="toggleBtn">Toggle LED</button>
+        <button id="toggleHeat">Toggle Heat</button>
+        <button id="toggleCool">Toggle Cooling</button>
+        <button id="resetBtn">Reset Wifi</button>
+        <script src="data:text/javascript,document.getElementById('toggleBtn').onclick = async function() { await fetch('/toggle'); };" defer></script>
+        <script src="data:text/javascript,document.getElementById('toggleHeat').onclick = async function() { await fetch('/toggleHeat'); };" defer></script>
+        <script src="data:text/javascript,document.getElementById('toggleCool').onclick = async function() { await fetch('/toggleCool'); };" defer></script>
+        <script src="data:text/javascript,document.getElementById('resetBtn').onclick = function() { window.location.href = '/reset'; };" defer></script>
+        <script src="data:text/javascript,async function getThermostat() { const elem = document.getElementById('thermostat'); elem.innerHTML = 'Updating...'; const t = await fetch('/thermostat'); const tVal = await t.text(); elem.innerHTML = tVal; setTimeout(getThermostat, 10000)}; getThermostat();" defer></script>
+    </body>
+</html>
