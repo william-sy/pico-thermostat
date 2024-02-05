@@ -23,10 +23,11 @@ async def run(host, port):
     hysteresis 		= settings["hysteresis"]		#
     displayUpdate 	= settings["displayUpdate"]		# How often we want to update the screen
     displayTimeOut	= settings["displayTimeOut"]	# When should the screen be turned off
+    calibration     = settings["calibration"]       # calibration of the temperature sensor.
     state   		= "Standby"						# Default thermostat state
     screen 			= True							# Screen on / off state
-#    temp     		= 0								# Humidity
-#    hum      		= 0								# Temperature
+    temperature		= 0								# Temperature
+#    hum      		= 0								# Humidity
     boot     		= True							# This is set to false after the boot screen
 #    menu			= False							# Determine if we are in menu mode
     relay = Pin(26, Pin.OUT)						# The relay for requesting heat
@@ -48,12 +49,13 @@ async def run(host, port):
     oled     = SSD1306_I2C(128, 64, i2c_dev)
 
     while True:
-        dewpoint = dewPoint(sensor.temperature, sensor.humidity)
+        dewpoint    = dewPoint(sensor.temperature, sensor.humidity)
+        temperature = sensor.temperature + calibration
         # Turn on the screen upon boot, we only need this once:
         if boot == True:
-            updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled, True)
+            updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled, True)
             sleep(2)
-            updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+            updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
             boot = False
 
         if screen == True:
@@ -69,12 +71,12 @@ async def run(host, port):
                 displayTimeOut = settings["displayTimeOut"]  # Reset display off timer
                 if targetTemp < maxTemp:
                     targetTemp = targetTemp + tempStep			 # Up the requested temperature
-                updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
             if swDwn.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
                 if targetTemp > minTemp:
                     targetTemp = targetTemp - tempStep		# Decrease the requested temperature
-                updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
             if swLft.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
                 print("left")
@@ -84,14 +86,14 @@ async def run(host, port):
             if swOk.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
                 #mainMenu()
-                updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
             
             # Auto display update every once in a while.
             if displayUpdate > 0:
                 displayUpdate = displayUpdate - 1
             else:
                 displayUpdate = settings["displayUpdate"]
-                updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
                
             onTemp  = sensor.temperature + hysteresis
             offTemp = sensor.temperature - hysteresis
@@ -171,7 +173,7 @@ def dewPoint(temp, hum):
     return roundedDewPoint #(B * alpha) / (A - alpha)
         
 ######## todo 
-def mainMenu():
+def mainMenu(oled):
     # This will update the values live, and persist them in the json file.
     SETTING_FILE = "../settings.json"
     menu = 1

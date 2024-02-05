@@ -1,1 +1,11 @@
-{"minTemp": 17, "maxTemp": 40, "hysteresis": 0.2, "tempStep": 0.5, "targetTemp": 20, "displayUpdate": 600, "calibrationUp": 0, "calibrationDwn": 0, "power": 1, "displayTimeOut": 90}
+{
+    "minTemp": 17, 
+    "maxTemp": 40, 
+    "hysteresis": 0.2, 
+    "tempStep": 0.5, 
+    "targetTemp": 20, 
+    "displayUpdate": 600, 
+    "calibration": -1, 
+    "power": 1, 
+    "displayTimeOut": 90
+}
