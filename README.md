@@ -8,6 +8,7 @@ Simple proof of concept added.
 ## Wires
 There is a kicad project in the kicad folder with the latest files needed.
 This is subjective to changes, as it still needs more work (debounce/dc-dc stepdown/onboard relay)
+![Kicad board](https://github.com/william-sy/pico-thermostat/blob/9534edbf46a97df454c49265efaf0556cfa04873/pictures/kicad.png)
 
 ## currently working:
 - 7 buttons (up,down,l,r,ok,back,menu)
