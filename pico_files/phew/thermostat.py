@@ -25,22 +25,21 @@ async def run(host, port):
     displayTimeOut	= settings["displayTimeOut"]	# When should the screen be turned off
     state   		= "Standby"						# Default thermostat state
     screen 			= True							# Screen on / off state
-    temp     		= 0								# Humidity
-    hum      		= 0								# Temperature
+#    temp     		= 0								# Humidity
+#    hum      		= 0								# Temperature
     boot     		= True							# This is set to false after the boot screen
-    menu			= False							# Determine if we are in menu mode
+#    menu			= False							# Determine if we are in menu mode
     relay = Pin(26, Pin.OUT)						# The relay for requesting heat
     # Switch Buttons
-    swUp  = Pin(20, Pin.IN, Pin.PULL_UP)
-    swOk  = Pin(19, Pin.IN, Pin.PULL_UP)
-    swCol = Pin(28, Pin.IN, Pin.PULL_UP)
-    swLft = Pin(18, Pin.IN, Pin.PULL_UP)
-    swDwn = Pin(21, Pin.IN, Pin.PULL_UP)
-    swRgt = Pin(2,  Pin.IN, Pin.PULL_UP)
-    swMen = Pin(3, Pin.IN, Pin.PULL_UP) # Menu
-    swBck = Pin(4, Pin.IN, Pin.PULL_UP) # Back
-    #swNM = Pin(2, Pin.IN, Pin.PULL_UP) # Night Mode
-    #swCM = Pin(2, Pin.IN, Pin.PULL_UP) # Cooling Mode
+    swUp  = Pin(20, Pin.IN, Pin.PULL_UP)            # Up
+    swOk  = Pin(19, Pin.IN, Pin.PULL_UP)            # OK
+    swLft = Pin(18, Pin.IN, Pin.PULL_UP)            # Left
+    swDwn = Pin(21, Pin.IN, Pin.PULL_UP)            # Down
+    swRgt = Pin(2,  Pin.IN, Pin.PULL_UP)            # Right
+    swMen = Pin(3, Pin.IN, Pin.PULL_UP)             # Menu
+    swBck = Pin(4, Pin.IN, Pin.PULL_UP)             # Back
+    #swNM = Pin(2, Pin.IN, Pin.PULL_UP)             # Night Mode
+    swCM = Pin(28, Pin.IN, Pin.PULL_UP)             # Cooling Mode
 
     # Temp Sensor and display:
     i2c      = SoftI2C(scl=Pin(15), sda=Pin(14))
@@ -48,7 +47,6 @@ async def run(host, port):
     i2c_dev  = SoftI2C(scl=Pin(0),sda=Pin(1))
     oled     = SSD1306_I2C(128, 64, i2c_dev)
 
-    
     while True:
         dewpoint = dewPoint(sensor.temperature, sensor.humidity)
         # Turn on the screen upon boot, we only need this once:
@@ -69,11 +67,13 @@ async def run(host, port):
             # Button controls:
             if swUp.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]  # Reset display off timer
-                targetTemp = targetTemp + 0.5				 # Up the requested temperature
+                if targetTemp < maxTemp:
+                    targetTemp = targetTemp + tempStep			 # Up the requested temperature
                 updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
             if swDwn.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
-                targetTemp = targetTemp - 0.5				# Decrease the requested temperature
+                if targetTemp > minTemp:
+                    targetTemp = targetTemp - tempStep		# Decrease the requested temperature
                 updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
             if swLft.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
@@ -93,26 +93,32 @@ async def run(host, port):
                 displayUpdate = settings["displayUpdate"]
                 updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
                
-            # heating / cooling logic eventually..
-            # Add cooling
-            
             onTemp  = sensor.temperature + hysteresis
             offTemp = sensor.temperature - hysteresis
-            if targetTemp > onTemp:
-                state = "Heating"
-                relay.value(1)
-                #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
-            elif targetTemp < offTemp:
-                state = "Standby"
-                relay.value(0)
-                #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+            if swCM.value() == 0: # If cooling mode is active
+                if targetTemp < onTemp:
+                    state = "Cooling"
+                    relay.value(1)
+                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                elif targetTemp > offTemp:
+                    state = "Standby"
+                    relay.value(0)
+            else: 
+                # Normal thermostat mode
+                if targetTemp > onTemp:
+                    state = "Heating"
+                    relay.value(1)
+                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                elif targetTemp < offTemp:
+                    state = "Standby"
+                    relay.value(0)
+                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
         else:
             #Has to be a better way for this but here we are:
             if swUp.value() == 0 or swDwn.value() == 0 or swUp.value() == 0 or swRgt.value() == 0 or swLft.value() == 0 or swOk.value() == 0 or swMen.value() == 0 or swBck.value() == 0 :
                 screen = True
                 screenState(oled, "on")
                 
- 
         await uasyncio.sleep(0.1)
 
 def screenState(oled, action):
