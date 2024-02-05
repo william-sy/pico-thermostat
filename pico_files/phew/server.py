@@ -7,13 +7,11 @@ catchall_handler = None
 loop = uasyncio.get_event_loop()
 thermostatState = False
 
-
 def file_exists(filename):
   try:
     return (os.stat(filename)[0] & 0x4000) == 0
   except OSError:
     return False
-
 
 def urldecode(text):
   text = text.replace("+", " ")
@@ -40,7 +38,6 @@ def _parse_query_string(query_string):
     result[key] = value
   return result
 
-
 class Request:
   def __init__(self, method, uri, protocol):
     self.method = method
@@ -62,7 +59,6 @@ headers: {self.headers}
 form: {self.form}
 data: {self.data}"""
 
-
 class Response:
   def __init__(self, body, status=200, headers={}):
     self.status = status
@@ -78,7 +74,6 @@ status: {self.status}
 headers: {self.headers}
 body: {self.body}"""
 
-
 content_type_map = {
   "html": "text/html",
   "jpg": "image/jpeg",
@@ -90,7 +85,6 @@ content_type_map = {
   "js": "text/javascript",
   "csv": "text/csv",
 }
-
 
 class FileResponse(Response):
   def __init__(self, file, status=200, headers={}):

@@ -1,15 +1,14 @@
 # The main thermostat routine:
-from machine import Pin, I2C, ADC, SoftI2C
+from machine import Pin, I2C, ADC, SoftI2C, reset
 from ssd1306 import SSD1306_I2C
 from time import sleep
-import time, aht, framebuf, sys, time, network, socket,uasyncio,json, math
+import time, aht, framebuf, sys, time, network, socket, uasyncio, json, math
 
 async def run(host, port):
     from . import server 
     uasyncio.create_task(uasyncio.start_server(server._handle_request, host, port)) # Start the webserver up as a seperate process.
     # If the webserver updates these we need a reset. (machine.reset())
     SETTING_FILE = "../settings.json"
-    # File was found, attempt to connect to wifi...
     with open(SETTING_FILE) as f:
         settings = json.load(f)
         f.close()
@@ -68,26 +67,19 @@ async def run(host, port):
                 
             # Button controls:
             if swUp.value() == 0:
-                displayTimeOut = settings["displayTimeOut"]  # Reset display off timer
+                displayTimeOut = settings["displayTimeOut"] # Reset display off timer
                 if targetTemp < maxTemp:
-                    targetTemp = targetTemp + tempStep			 # Up the requested temperature
+                    targetTemp = targetTemp + tempStep	    # Up the requested temperature
                 updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
             if swDwn.value() == 0:
                 displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
                 if targetTemp > minTemp:
                     targetTemp = targetTemp - tempStep		# Decrease the requested temperature
                 updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
-            if swLft.value() == 0:
-                displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
-                print("left")
-            if swRgt.value() == 0:
-                displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
-                print("right")
             if swOk.value() == 0:
-                displayTimeOut = settings["displayTimeOut"]	# Reset display off timer
-                #mainMenu()
-                updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
-            
+                mainMenu(oled, tempStep)
+                #pass        # menu button pressed, need to go into menu.
+
             # Auto display update every once in a while.
             if displayUpdate > 0:
                 displayUpdate = displayUpdate - 1
@@ -101,7 +93,7 @@ async def run(host, port):
                 if targetTemp < onTemp:
                     state = "Cooling"
                     relay.value(1)
-                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                    #updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
                 elif targetTemp > offTemp:
                     state = "Standby"
                     relay.value(0)
@@ -110,11 +102,11 @@ async def run(host, port):
                 if targetTemp > onTemp:
                     state = "Heating"
                     relay.value(1)
-                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                    #updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
                 elif targetTemp < offTemp:
                     state = "Standby"
                     relay.value(0)
-                    #updateScreen(state,sensor.temperature, sensor.humidity, targetTemp, dewpoint, oled)
+                    #updateScreen(state, temperature, sensor.humidity, targetTemp, dewpoint, oled)
         else:
             #Has to be a better way for this but here we are:
             if swUp.value() == 0 or swDwn.value() == 0 or swUp.value() == 0 or swRgt.value() == 0 or swLft.value() == 0 or swOk.value() == 0 or swMen.value() == 0 or swBck.value() == 0 :
@@ -163,6 +155,19 @@ def updateScreen(state, temp, hum, target, dewpoint, oled, boot=False):
         oled.text("2024.02.01-01",1,20)
         oled.show()
 
+def menuScreen(oled, setting, value, expl):
+    oled.fill(0) # clear the display
+    oled.text("Settings:",1,1)
+    oled.hline(0, 10, 128, 1)
+    if value == 9999:
+        oled.text("{}".format(setting),1,15)
+        oled.text("{}".format(expl),1,25)
+    else:
+        oled.text("{}".format(setting),1,15)
+        oled.text("{:.2f}".format(value),1,25)
+        oled.text("{}".format(expl),1,35)
+    oled.show()
+
 def dewPoint(temp, hum):
     """Compute the dew point in degrees Celsius
     """
@@ -172,27 +177,70 @@ def dewPoint(temp, hum):
     roundedDewPoint = round((B * alpha) / (A - alpha), 2)
     return roundedDewPoint #(B * alpha) / (A - alpha)
         
-######## todo 
-def mainMenu(oled):
-    # This will update the values live, and persist them in the json file.
+def mainMenu(oled, tempStep):
+    swUp  = Pin(20, Pin.IN, Pin.PULL_UP)            # Up
+    swOk  = Pin(19, Pin.IN, Pin.PULL_UP)            # OK
+    swDwn = Pin(21, Pin.IN, Pin.PULL_UP)            # Down
+    # Load the values:
     SETTING_FILE = "../settings.json"
-    menu = 1
-    while menu == 1:
+    with open(SETTING_FILE) as f:
+        settings = json.load(f)
+        f.close()
+    # Iterate on the values and change them where needed:
+    menu = True
+    while menu == True:
         oled.fill(0) # clear the display
         oled.text("Settings:",1,1)
         oled.hline(0, 10, 128, 1) 
-        oled.text("U/D: Change val.",1,15)
-        oled.text("L/R: Next/prev.",1,25)
-        oled.text("OK: Next",1,35)
+        oled.text("Up/Down:",1,15)
+        oled.text("Change value",1,25)
+        oled.text("OK: Next",1,45)
         oled.text("",1,45)
         oled.show()
-        sleep(3) 
-        setting = [hysteresis]
-        for i in setting:
-#{"minTemp": 5, "maxTemp": 40, "hysteresis": 0.2, "targetTemp": 20, "displayUpdate": 600, "calibrationUp": 0, "calibrationDwn": 0, "power": 1, "displayTimeOut": 30}
-            menu = 0
-    #with open(SETTING_FILE, "w") as f:
-    #    settings = json.load(f)
-        # Greet with tutorial:
-    #    f.close()
+        sleep(3)
+        for key, value in settings.items():
+            subMenuItem = 1
+            while subMenuItem == 1:
+                sleep(0.1)
+                menuScreen(oled, key, value, "")
+                if swUp.value() == 0:
+                    value = value + tempStep
+                    menuScreen(oled, key, value, "")
+                if swDwn.value() == 0:
+                    value = value - tempStep
+                    menuScreen(oled, key, value, "")
+                if swOk.value() == 0:
+                    settings[key] = value
+                    subMenuItem = 0
+        # We need to ask if we want ot exit or go again
+        exitQuestion = True
+        key 	= "Want to exit?"
+        expl 	= "Stay / Exit"
+        value 	= 9999
+        while exitQuestion == True:
+            sleep(0.1)
+            menuScreen(oled, key, value, expl)
+            if swUp.value() == 0:
+                expl = "Exit"
+                menuScreen(oled, key, value, expl)
+            if swDwn.value() == 0:
+                expl = "Stay"
+                menuScreen(oled, key, value, expl)
+            if swOk.value() == 0:
+                if expl == "Exit":
+                    # Write changes to file, reload thermostat.
+                    with open(SETTING_FILE, 'w') as f:
+                        json.dump(settings, f)
+                        f.close()
+                        
+                    reset()
+                    #exitQuestion 	= False
+                    #menu 			= False
+                elif expl == "Stay":
+                    exitQuestion 	= False
+                    menu 			= True
+                    
+       
+                            
     
+
