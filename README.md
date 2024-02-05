@@ -31,4 +31,4 @@ The inputs:
 - Night mode, when you have multiple thermosats, you can signal them all to go into night mode (to indicate a lower temperature is requested than in day mode saving money)
 
 
-![version 1](https://github.com/william-sy/pico-thermostat/blob/master/pictures/v1.JPG?raw=true)
+![Version1](https://github.com/william-sy/pico-thermostat/blob/283dc2f304fdcb1536dcbbf625a0f4007fa67c08/pictures/v1.JPG)
