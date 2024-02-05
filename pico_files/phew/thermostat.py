@@ -33,12 +33,14 @@ async def run(host, port):
     # Switch Buttons
     swUp  = Pin(20, Pin.IN, Pin.PULL_UP)            # Up
     swOk  = Pin(19, Pin.IN, Pin.PULL_UP)            # OK
-    swLft = Pin(18, Pin.IN, Pin.PULL_UP)            # Left
     swDwn = Pin(21, Pin.IN, Pin.PULL_UP)            # Down
-    swRgt = Pin(2,  Pin.IN, Pin.PULL_UP)            # Right
-    swMen = Pin(3, Pin.IN, Pin.PULL_UP)             # Menu
-    swBck = Pin(4, Pin.IN, Pin.PULL_UP)             # Back
-    #swNM = Pin(2, Pin.IN, Pin.PULL_UP)             # Night Mode
+
+    # These buttons are not used at the moment. 
+    #swLft = Pin(18, Pin.IN, Pin.PULL_UP)            # Left
+    #swRgt = Pin(2,  Pin.IN, Pin.PULL_UP)            # Right
+    #swMen = Pin(3, Pin.IN, Pin.PULL_UP)             # Menu
+    #swBck = Pin(4, Pin.IN, Pin.PULL_UP)             # Back
+    #swNM = Pin(2, Pin.IN, Pin.PULL_UP)              # Night Mode
     swCM = Pin(28, Pin.IN, Pin.PULL_UP)             # Cooling Mode
 
     # Temp Sensor and display:
@@ -232,10 +234,8 @@ def mainMenu(oled, tempStep):
                     with open(SETTING_FILE, 'w') as f:
                         json.dump(settings, f)
                         f.close()
-                        
+                      
                     reset()
-                    #exitQuestion 	= False
-                    #menu 			= False
                 elif expl == "Stay":
                     exitQuestion 	= False
                     menu 			= True
